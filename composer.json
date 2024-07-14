@@ -22,7 +22,9 @@
         "drupal/core-recommended": "^10.3",
         "drupal/field_group": "^3.4",
         "drupal/field_group_table": "^1.1",
+        "drupal/paragraphs": "^1.17",
         "drupal/radix": "^5.0",
+        "drupal/twig_tweak": "^3.2",
         "drush/drush": "^12.5",
         "tripal/tripal": "4.0-alpha2"
     },
