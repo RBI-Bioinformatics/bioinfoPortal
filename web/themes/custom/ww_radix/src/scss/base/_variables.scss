@@ -32,20 +32,20 @@ $gray-800: #073642 !default;
 $gray-900: #002b36 !default;
 $black:    #000 !default;
 
-$blue:    #b58900 !default;
+$blue:    #0000FF !default;
 $indigo:  #6610f2 !default;
 $purple:  #6f42c1 !default;
 $pink:    #e83e8c !default;
 $red:     #d33682 !default;
 $orange:  #fd7e14 !default;
-$yellow:  #cb4b16 !default;
-$green:   #2aa198 !default;
+$yellow:  #b58900 !default;
+$green:   #216438 !default;
 $teal:    #20c997 !default;
 $cyan:    #268bd2 !default;
 $rice:    #ccb885 !default;
 
-$primary:       $blue !default;
-$secondary:     $gray-600 !default;
+$primary:       $yellow;
+$secondary:     $rice !default;
 $success:       $green !default;
 $info:          $cyan !default;
 $warning:       $yellow !default;
@@ -58,7 +58,7 @@ $min-contrast-ratio:   2.5 !default;
 // Body
 
 $body-bg:                   $rice !default;
-$body-color:                $gray-600 !default;
+$body-color:                $gray-300 !default;
 
 // Links
 
