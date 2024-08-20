@@ -1,0 +1,20 @@
+uuid: 3f2bb84a-16b3-45a8-a969-bd3edd54e674
+langcode: en
+status: true
+dependencies:
+  theme:
+    - ww_radix
+_core:
+  default_config_hash: 6aOgWsNTXjqrDm98TXSAjP6qd2nCijD1xw45MrnbK-Y
+id: ww_radix_page_title
+theme: ww_radix
+region: header
+weight: -5
+provider: null
+plugin: page_title_block
+settings:
+  id: page_title_block
+  label: 'Page Title'
+  label_display: '0'
+  provider: core
+visibility: {  }

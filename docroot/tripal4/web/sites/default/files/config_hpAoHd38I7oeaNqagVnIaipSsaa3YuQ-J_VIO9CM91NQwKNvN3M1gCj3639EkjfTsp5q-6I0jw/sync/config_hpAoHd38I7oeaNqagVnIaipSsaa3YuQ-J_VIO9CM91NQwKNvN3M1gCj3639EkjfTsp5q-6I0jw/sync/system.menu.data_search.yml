@@ -1,0 +1,8 @@
+uuid: a78a94e5-9c8d-414a-a792-e97e97b63a10
+langcode: en
+status: true
+dependencies: {  }
+id: data_search
+label: 'Data Search'
+description: 'The Data Search menu contains links to search tools for finding biological data.'
+locked: false

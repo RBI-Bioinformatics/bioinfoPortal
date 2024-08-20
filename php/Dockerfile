@@ -1,14 +1,47 @@
-ARG PHP_VERSION=""
-FROM php:${PHP_VERSION:+${PHP_VERSION}-}fpm-alpine
+ARG PHP_VERSION="8.1"
+FROM php:${PHP_VERSION}-fpm-alpine
 
-RUN apk update; \
-    apk upgrade;
+RUN apk update && \
+    apk upgrade
 
-# Install gd library extension
-RUN apk add libpng libpng-dev libjpeg-turbo-dev libwebp-dev zlib-dev libxpm-dev gd && docker-php-ext-install gd    
+# Install necessary dependencies
+RUN apk add --no-cache \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    libwebp-dev \
+    zlib-dev \
+    freetype-dev \
+    gd \
+    postgresql-dev \
+    bash \
+    libressl \
+    ca-certificates \
+    openssh-client \
+    rsync \
+    git \
+    curl \
+    wget \
+    gzip \
+    tar \
+    patch \
+    perl \
+    pcre \
+    imap \
+    imagemagick \
+    build-base \
+    autoconf \
+    libtool \
+    pcre-dev \
+    imagemagick-dev
 
-# Install MySql
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+# Install PHP extensions
+RUN docker-php-ext-configure gd \
+    --with-webp \
+    --with-jpeg \
+    --with-freetype \
+    && docker-php-ext-install gd \
+    pdo \
+    pdo_pgsql
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php && \
@@ -17,73 +50,39 @@ RUN curl -sS https://getcomposer.org/installer | php && \
 
 # Install Drush
 RUN composer global require drush/drush && \
-    composer global update 
+    composer global update
 
-# PHP packages
-RUN apk add --update \
-        libressl \
-        ca-certificates \
-        openssh-client \
-        rsync \
-        git \
-        curl \
-        wget \
-        gzip \
-        tar \
-        patch \
-        perl \
-        pcre \
-        imap \
-        imagemagick \
-        mariadb-client \
-        build-base \
-        autoconf \
-        libtool \
-        php7-dev \
-        pcre-dev \
-        imagemagick-dev \
-        php7 \
-        php7-fpm \
-        php7-opcache \
-        php7-session \
-        php7-dom \
-        php7-xml \
-        php7-xmlreader \
-        php7-ctype \
-        php7-ftp \
-        php7-gd \
-        php7-json \
-        php7-posix \
-        php7-curl \
-        php7-pdo \
-        php7-pdo_mysql \
-        php7-sockets \
-        php7-zlib \
-        php7-mcrypt \
-        php7-mysqli \
-        php7-sqlite3 \
-        php7-bz2 \
-        php7-phar \
-        php7-openssl \
-        php7-posix \
-        php7-zip \
-        php7-calendar \
-        php7-iconv \
-        php7-imap \
-        php7-soap \
-        php7-dev \
-        php7-pear \
-        php7-redis \
-        php7-mbstring \
-        php7-xdebug \
-        php7-exif \
-        php7-xsl \
-        php7-ldap \
-        php7-bcmath \
-        php7-memcached \
-        php7-oauth \
-        php7-apcu
-RUN pecl install xdebug \
-    && echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > /usr/local/etc/php/conf.d/xdebug.ini \
-    && echo "xdebug.remote_enable=on" >> /usr/local/etc/php/conf.d/xdebug.ini \
-    && echo "xdebug.remote_autostart=off" >> /usr/local/etc/php/conf.d/xdebug.ini
+# Install PHP OPcache
+RUN docker-php-ext-install opcache
+
+# Add OPcache configuration
+RUN echo "opcache.enable=1" > /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.interned_strings_buffer=8" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.max_accelerated_files=4000" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.revalidate_freq=2" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.save_comments=1" >> /usr/local/etc/php/conf.d/opcache.ini
+
+# Install and configure Xdebug (optional)
+# RUN pecl install xdebug-3.1.2 && \
+#     docker-php-ext-enable xdebug && \
+#     echo "zend_extension=xdebug.so" > /usr/local/etc/php/conf.d/xdebug.ini && \
+#     echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/xdebug.ini && \
+#     echo "xdebug.start_with_request=yes" >> /usr/local/etc/php/conf.d/xdebug.ini
+
+# Xdebug configuration (optional)
+# RUN echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/xdebug.ini && \
+#     echo "xdebug.client_port=9003" >> /usr/local/etc/php/conf.d/xdebug.ini && \
+#     echo "xdebug.log=/tmp/xdebug.log" >> /usr/local/etc/php/conf.d/xdebug.ini
+
+# Clean up
+RUN apk del --purge \
+    build-base \
+    autoconf \
+    libtool \
+    pcre-dev \
+    imagemagick-dev
+
+WORKDIR /var/www/bioinformatics/docroot/tripal4/web
+
+CMD ["php-fpm"]

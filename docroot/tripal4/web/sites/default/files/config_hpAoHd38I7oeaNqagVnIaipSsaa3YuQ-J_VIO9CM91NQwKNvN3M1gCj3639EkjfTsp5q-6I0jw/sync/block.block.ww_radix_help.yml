@@ -1,0 +1,22 @@
+uuid: 144b38d2-a4e9-439f-86c6-f2ee0380ceab
+langcode: en
+status: true
+dependencies:
+  module:
+    - help
+  theme:
+    - ww_radix
+_core:
+  default_config_hash: VfPFqqxfkomud5CO8DUijw85QIl9GIxh_nIxLOYESxg
+id: ww_radix_help
+theme: ww_radix
+region: header
+weight: -4
+provider: null
+plugin: help_block
+settings:
+  id: help_block
+  label: Help
+  label_display: '0'
+  provider: help
+visibility: {  }
