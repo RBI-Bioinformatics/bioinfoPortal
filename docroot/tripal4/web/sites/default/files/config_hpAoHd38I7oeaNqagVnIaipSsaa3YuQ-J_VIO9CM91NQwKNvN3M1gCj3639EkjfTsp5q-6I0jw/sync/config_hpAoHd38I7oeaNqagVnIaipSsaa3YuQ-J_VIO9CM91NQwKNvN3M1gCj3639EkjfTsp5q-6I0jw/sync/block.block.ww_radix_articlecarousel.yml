@@ -1,0 +1,30 @@
+uuid: b1204f93-05fe-480d-a1bd-4396d6ff2073
+langcode: en
+status: true
+dependencies:
+  content:
+    - 'block_content:carousel:c4c0a398-f582-48aa-b21d-93bd913de66d'
+  module:
+    - block_content
+    - system
+  theme:
+    - ww_radix
+id: ww_radix_articlecarousel
+theme: ww_radix
+region: header
+weight: -6
+provider: null
+plugin: 'block_content:c4c0a398-f582-48aa-b21d-93bd913de66d'
+settings:
+  id: 'block_content:c4c0a398-f582-48aa-b21d-93bd913de66d'
+  label: 'Article carousel'
+  label_display: '0'
+  provider: block_content
+  status: true
+  info: ''
+  view_mode: full
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: /node

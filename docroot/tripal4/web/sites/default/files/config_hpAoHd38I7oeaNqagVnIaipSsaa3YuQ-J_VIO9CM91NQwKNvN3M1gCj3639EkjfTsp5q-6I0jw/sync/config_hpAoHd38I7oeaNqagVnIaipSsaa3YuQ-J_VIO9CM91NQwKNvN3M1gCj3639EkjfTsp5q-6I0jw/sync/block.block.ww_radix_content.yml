@@ -1,0 +1,22 @@
+uuid: 053c62cc-01a3-4630-bece-67459813cccd
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - ww_radix
+_core:
+  default_config_hash: erQSEZF2XUjNmgTl0uNRBzmg18ZGXwUcw2FhApoeuHk
+id: ww_radix_content
+theme: ww_radix
+region: content
+weight: 0
+provider: null
+plugin: system_main_block
+settings:
+  id: system_main_block
+  label: 'Main page content'
+  label_display: '0'
+  provider: system
+visibility: {  }

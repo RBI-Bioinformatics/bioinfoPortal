@@ -1,0 +1,10 @@
+_core:
+  default_config_hash: EKiqfZEJuc5MdEIfpUq80Ct_ce5Qi7HR1Gyt1MWzMiQ
+langcode: en
+tripal_entity_type:
+  max_id: 0
+  allowed_title_tags: 'em i strong u'
+files:
+  max_size: 1000000000
+  quota: 1000000000
+  expiration: 60

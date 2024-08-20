@@ -1,0 +1,20 @@
+uuid: 9a239e67-bb26-4b36-94cf-57263523742a
+langcode: en
+status: true
+dependencies:
+  theme:
+    - ww_radix
+_core:
+  default_config_hash: Q9_2whdOj1YIomfvsIfopROW4FT_X5pY0DjdOiOaQ5U
+id: ww_radix_primary_admin_actions
+theme: ww_radix
+region: header
+weight: -2
+provider: null
+plugin: local_actions_block
+settings:
+  id: local_actions_block
+  label: 'Primary admin actions'
+  label_display: '0'
+  provider: core
+visibility: {  }

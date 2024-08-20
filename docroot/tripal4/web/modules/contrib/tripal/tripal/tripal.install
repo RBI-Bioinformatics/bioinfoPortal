@@ -1,0 +1,965 @@
+<?php
+/**
+ * @file
+ * Contains functions used to install/uninstall tripal.
+ */
+
+use \Drupal\Core\Database\Database;
+
+/**
+ * Implementation of hook_install().
+ *
+ * @ingroup tripal
+ */
+function tripal_install() {
+
+  // Reserves Drupal schema in 'reserved_schema_patterns' settings.
+  $tripaldbx = \Drupal::service('tripal.dbx');
+  $drupal_schema = $tripaldbx->getDrupalSchemaName();
+  $config = \Drupal::service('config.factory')
+    ->getEditable('tripaldbx.settings');
+  $reserved_schema_patterns = $config->get('reserved_schema_patterns') ?? [];
+  $reserved_schema_patterns[$drupal_schema] = 'Drupal installation';
+  $config->set('reserved_schema_patterns', $reserved_schema_patterns)->save();
+
+  // Add the Data Search Menu for Tripal specific searches.
+  $storage = Drupal::entityTypeManager()->getStorage('menu');
+  $menu = $storage->load('data_search');
+  if (is_null($menu)) {
+    $storage->create([
+      'id' => 'data_search',
+      'label' => t('Data Search'),
+      'description' => t('The Data Search menu contains links to search tools for finding biological data.'),
+    ])->save();
+  }
+}
+
+/**
+ * Adds variables for bundles.
+ */
+function tripal_add_variables() {
+  // Add tripal bundle variables needed for storing additional settings for
+  // Tripal Bundles.
+
+  // ---------------------------------------------------------
+  // - Commented out until we move to drupal 8 configuration -
+  // ---------------------------------------------------------
+
+  //tripal_insert_variable('title_format',
+  //  'A pattern including tokens that can be used to generate tripal entity titles.');
+  //tripal_insert_variable('url_format',
+  //  'A pattern including tokens that can be used to generate tripal entity url aliases.');
+  //tripal_insert_variable('description',
+  //  'The description of a Tripal Entity type/bundle.');
+  //tripal_insert_variable('hide_empty_field',
+  //  'Structure->Tripal Content Type->edit checkbox to hide empty fields for that bundle.');
+  //tripal_insert_variable('ajax_field',
+  //  'Structure->Tripal Content Type->edit checkbox for ajax fields for that bundle.');
+}
+
+/**
+ * Implements hook_uninstall().
+ *
+ * @ingroup tripal
+ */
+function tripal_uninstall() {
+
+  // Remove configuration.
+  // -- Reserves Drupal schema in 'reserved_schema_patterns' settings.
+  $config = \Drupal::service('config.factory')
+    ->getEditable('tripaldbx.settings');
+  $config->delete();
+
+}
+
+///**
+// *
+// */
+//function tripal_enable() {
+//  // If Tripal v2 is already installed, the installation of this module
+//  // will try and recreate some of the tables created with tripal_core and the
+//  // installation will fail.  Therefore, in the install we renamed it. Now
+//  // we want to move it back.
+//  if (db_table_exists('tripal_jobs2')) {
+//    $sql = "DROP TABLE tripal_jobs";
+//    db_query($sql);
+//    db_rename_table('tripal_jobs2', 'tripal_jobs');
+//  }
+//
+//  if (db_table_exists('tripal_token_formats2')) {
+//    $sql = "DROP TABLE tripal_token_formats";
+//    db_query($sql);
+//    db_rename_table('tripal_token_formats2', 'tripal_token_formats');
+//  }
+//
+//  if (db_table_exists('tripal_variables2')) {
+//    $sql = "DROP TABLE tripal_variables";
+//    db_query($sql);
+//    db_rename_table('tripal_variables2', 'tripal_variables');
+//  }
+//
+//  if (db_table_exists('tripal_custom_quota2')) {
+//    $sql = "DROP TABLE tripal_custom_quota";
+//    db_query($sql);
+//    db_rename_table('tripal_custom_quota2', 'tripal_custom_quota');
+//  }
+//
+//  if (db_table_exists('tripal_expiration_files2')) {
+//    $sql = "DROP TABLE tripal_expiration_files";
+//    db_query($sql);
+//    db_rename_table('tripal_expiration_files2', 'tripal_expiration_files');
+//  }
+//
+//  // schema change
+//  if (!db_field_exists('tripal_jobs', 'includes')) {
+//    $sql = "ALTER TABLE tripal_jobs ADD COLUMN includes text";
+//    db_query($sql);
+//  }
+//
+//  tripal_add_variables();
+//}
+
+/**
+ * Implements hook_requirements().
+ */
+function tripal_requirements($phase) {
+  $checks = [];
+  // Make sure the current install does not use per-table prefixes.
+  $connection_options = \Drupal::database()->getConnectionOptions();
+  if (!empty($connection_options['extra_prefix'])
+      || ((!empty($connection_options['prefix']))
+          && (is_array($connection_options['prefix']))
+          && (1 < count($connection_options['prefix']))
+      )
+  ) {
+    $checks['tripal_no_per_table_prefix'] = [
+      'title' => t('Database table prefixes'),
+      'description' => t('Current Tripal version is not compatible with per-table prefixing. You may edit your site settings.php and remove per-table prefixing and just set $database array key "prefix" to a string value (which can be empty). Note: you may ignore this warning if you only use this module on database connections without per-table prefixes.'),
+      'severity' => REQUIREMENT_WARNING,
+    ];
+  }
+  else {
+    $checks['tripal_no_per_table_prefix'] = [
+      'title' => t('Database table prefixes'),
+      'description' => t('Current Tripal version is not compatible with per-table prefixing. Your settings are not showing the use of per-table prefixing.'),
+      'severity' => REQUIREMENT_OK,
+    ];
+  }
+
+  return $checks;
+}
+
+/**
+ * Implementation of hook_schema().
+ *
+ * @ingroup tripal
+ */
+function tripal_schema() {
+
+  // If Tripal v2 is already installed, the installation of this module
+  // will try and recreate some of the tables created with tripal_core and the
+  // installation will fail.  Therefore, we need to temporarily move those
+  // tables out of the way, let the module install and then move them back.
+
+  $schema = [];
+
+  $schema['tripal_jobs'] = tripal_tripal_jobs_schema();
+  $schema['tripal_token_formats'] = tripal_tripal_token_formats_schema();
+  $schema['tripal_variables'] = tripal_tripal_variables_schema();
+  $schema['tripal_expiration_files'] = tripal_tripal_expiration_files_schema();
+  $schema['tripal_custom_quota'] = tripal_tripal_custom_quota_schema();
+
+  $schema['tripal_import'] = tripal_tripal_import_schema();
+  $schema['tripal_collection'] = tripal_tripal_collection_schema();
+  $schema['tripal_collection_bundle'] = tripal_tripal_collection_bundle_schema();
+  $schema['tripal_id_space_collection'] = tripal_tripal_id_space_collection_schema();
+  $schema['tripal_vocabulary_collection'] = tripal_tripal_vocabulary_collection_schema();
+
+  // Adds a table for administrative notifications on the dashboard.
+  $schema['tripal_admin_notifications'] = tripal_tripal_admin_notifications_schema();
+
+  $schema['tripal_terms'] = tripal_tripal_terms_schema();
+  $schema['tripal_terms_idspaces'] = tripal_tripal_terms_idspaces_schema();
+  $schema['tripal_terms_vocabs'] = tripal_tripal_terms_vocabs_schema();
+  return $schema;
+}
+
+/**
+ *
+ */
+function tripal_tripal_terms_vocabs_schema() {
+  return [
+    'fields' => [
+      'vocab_id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'label' => [
+        'type' => 'varchar',
+        'length' => 1024,
+        'not null' => FALSE,
+      ],
+      'url' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'idspaces' => [
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+    ],
+    'indexes' => [
+      'name' => ['name'],
+    ],
+    'unique keys' => [
+      'label_unq1' => ['name'],
+    ],
+    'primary key' => ['vocab_id'],
+  ];
+}
+
+/**
+ *
+ */
+function tripal_tripal_terms_idspaces_schema() {
+  return [
+    'fields' => [
+      'idspace_id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'description' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'urlprefix' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'default_vocab' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+    ],
+    'indexes' => [
+      'name' => ['name'],
+    ],
+    'unique keys' => [
+      'label_unq1' => ['name'],
+    ],
+    'primary key' => ['idspace_id'],
+  ];
+}
+
+/**
+ *
+ */
+function tripal_tripal_terms_schema() {
+  // @todo: Storing parents and synonyms in a text field will make it
+  // slow to lookup terms by those names.  Since this table is just to
+  // provide some sort of default storage so that Tripal can work without
+  // Chado it may not be that big of a deal.  But if there is a case
+  // where this table is used for storing massive numbers of terms it
+  // will need to be optimized.
+  return [
+    'fields' => [
+      'term_id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 1024,
+        'not null' => TRUE,
+      ],
+      'definition' => [
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+      'accession' => [
+        'type' => 'varchar',
+        'length' => 1024,
+        'not null' => TRUE,
+      ],
+      'is_obsolete' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ],
+      'is_relationship_type' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ],
+      'id_space' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'vocabulary' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'parents' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+      ],
+      'altIds' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+      ],
+      'synonyms' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+      ],
+      'properties' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+      ],
+    ],
+    'indexes' => [
+      'term_id' => ['term_id'],
+      'name' => ['name'],
+      'vocabulary' => ['vocabulary'],
+      'id_space' => ['id_space'],
+      'name_vocab' => ['name', 'id_space', 'vocabulary'],
+    ],
+    'unique keys' => [
+      'term_full_accession' => ['id_space', 'accession'],
+    ],
+    'primary key' => ['term_id'],
+  ];
+}
+
+/**
+ * Returns the Drupal Schema API array for the tripal_jobs table.
+ */
+function tripal_tripal_jobs_schema() {
+  return [
+    'fields' => [
+      'job_id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The Drupal userid of the submitee',
+      ],
+      'job_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'modulename' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'description' => 'The module name that provides the callback for this job',
+      ],
+      'callback' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'arguments' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+      ],
+      'progress' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+        'not null' => FALSE,
+        'description' => 'a value from 0 to 100 indicating percent complete',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+      ],
+      'submit_date' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'UNIX integer submit time',
+      ],
+      'start_time' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'UNIX integer start time',
+      ],
+      'end_time' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'UNIX integer end time',
+      ],
+      'error_msg' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+      ],
+      'pid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'The process id for the job',
+      ],
+      'priority' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => '0',
+        'description' => 'The job priority',
+      ],
+      'mlock' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'If set to 1 then all jobs for the module are held until this one finishes',
+      ],
+      'lock' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'If set to 1 then all jobs are held until this one finishes',
+      ],
+      'includes' => [
+        'type' => 'text',
+        'description' => 'A serialized array of file paths that should be included prior to executing the job.',
+        'not null' => FALSE,
+      ],
+    ],
+    'indexes' => [
+      'job_id' => ['job_id'],
+      'job_name' => ['job_name'],
+    ],
+    'primary key' => ['job_id'],
+  ];
+}
+
+/**
+ * Returns the Drupal Schema API array for the tripal_jobs table.
+ */
+function tripal_tripal_collection_schema() {
+  return [
+    'fields' => [
+      'collection_id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'collection_name' => [
+        'type' => 'varchar',
+        'length' => 1024,
+        'not null' => TRUE,
+      ],
+      'description' => [
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'The user Id of the person who created the collection.',
+      ],
+      'create_date' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'UNIX integer start time',
+      ],
+    ],
+    'indexes' => [
+      'uid' => ['uid'],
+    ],
+    'unique keys' => [
+      'user_collection' => ['uid', 'collection_name'],
+    ],
+    'primary key' => ['collection_id'],
+  ];
+}
+
+/**
+ * Returns the Drupal Schema API array for the tripal_jobs table.
+ */
+function tripal_tripal_collection_bundle_schema() {
+  return [
+    'fields' => [
+      'collection_bundle_id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'collection_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'bundle_name' => [
+        'type' => 'varchar',
+        'length' => 1024,
+        'not null' => TRUE,
+      ],
+      'ids' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'description' => 'An array of entity IDs.',
+      ],
+      'fields' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'description' => 'An array of numeric field IDs.',
+      ],
+      'site_id' => [
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'description' => 'The ID of the site from the Tripal Sites table.',
+      ],
+    ],
+    'indexes' => [
+      'collection_id' => ['collection_id'],
+    ],
+    'primary key' => ['collection_bundle_id'],
+  ];
+}
+
+/**
+ * Returns the Drupal Schema API array for the tripal_jobs table.
+ */
+function tripal_tripal_import_schema() {
+  return [
+    'fields' => [
+      'import_id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The Drupal userid of the submitee.',
+      ],
+      'class' => [
+        'type' => 'varchar',
+        'length' => 256,
+        'not null' => TRUE,
+      ],
+      'fid' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'The file IDs of the to import. This only applies if the file was uploaded (i.e. not already on the server) and is mangaged by Drupal. Multiple fids are separated using a | character.',
+      ],
+      'arguments' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'description' => 'Holds a serialized PHP array containing the key/value paris that are used for arguments of the job.',
+      ],
+      'submit_date' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'UNIX integer submit time',
+      ],
+    ],
+    'indexes' => [
+      'class' => ['class'],
+    ],
+    'foreign keys' => [
+      'tripal_jobs' => [
+        'table' => 'tripal_jobs',
+        'columns' => [
+          'job_id' => 'job_id',
+        ],
+      ],
+      'users' => [
+        'table' => 'users',
+        'columns' => [
+          'uid' => 'uid',
+        ],
+      ],
+      'file_managed' => [
+        'table' => 'file_managed',
+        'columns' => [
+          'fid' => 'fid',
+        ],
+      ],
+    ],
+    'primary key' => ['import_id'],
+  ];
+}
+
+/**
+ *
+ * @return
+ */
+function tripal_tripal_token_formats_schema() {
+  return [
+    'fields' => [
+      'tripal_format_id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'content_type' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'application' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'format' => [
+        'type' => 'text',
+        'not null' => TRUE,
+      ],
+      'tokens' => [
+        'type' => 'text',
+        'not null' => TRUE,
+      ],
+    ],
+    'unique keys' => [
+      'type_application' => ['content_type', 'application'],
+    ],
+    'primary key' => ['tripal_format_id'],
+  ];
+}
+
+function tripal_tripal_variables_schema() {
+
+  return [
+    'description' => 'This table houses a list of unique variable names that ' . 'can be used in the tripal_node_variables table.',
+    'fields' => [
+      'variable_id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'description' => [
+        'type' => 'text',
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => [
+      0 => 'variable_id',
+    ],
+    'unique keys' => [
+      'tripal_variables_c1' => [
+        0 => 'name',
+      ],
+    ],
+    'indexes' => [
+      'tripal_variable_names_idx1' => [
+        0 => 'variable_id',
+      ],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Provides the schema for the tripal_custom_quota table.
+ */
+function tripal_tripal_custom_quota_schema() {
+  $schema = [
+    'table' => 'tripal_custom_quota',
+    'fields' => [
+      'uid' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+      ],
+      'custom_quota' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+      ],
+      'custom_expiration' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['uid'],
+    'unique keys' => [
+      'tripal_custom_quota_uq1' => ['uid'],
+    ],
+    'indexes' => [
+      'tripal_custom_quota_idx1' => ['uid'],
+    ],
+  ];
+  return $schema;
+}
+
+/**
+ * Provides the schema for the tripal_expiration_files table.
+ */
+function tripal_tripal_expiration_files_schema() {
+  $schema = [
+    'table' => 'tripal_expiration_files',
+    'fields' => [
+      'fid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'expiration_date' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => [
+      0 => 'fid',
+    ],
+    'unique keys' => [
+      'tripal_expiration_files_uq1' => ['fid'],
+    ],
+    'indexes' => [
+      'tripal_expiration_files_idx1' => ['fid'],
+    ],
+  ];
+  return $schema;
+}
+
+/**
+ * Additional Tripal Admin Notification Information.
+ *
+ * This table is used for information describing administrative
+ * notifications. For example, when new fields are available.
+ */
+function tripal_tripal_admin_notifications_schema() {
+
+  $schema = [
+    'description' => 'This table is used for information describing administrative
+     notifications. For example, when new fields are available.',
+    'fields' => [
+      'note_id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'details' => [
+        'description' => 'Description and additional information relating to the notification.',
+        'type' => 'text',
+        'not null' => TRUE,
+      ],
+      'title' => [
+        'description' => 'Title of the notification.',
+        'type' => 'text',
+        'not null' => TRUE,
+      ],
+      'actions' => [
+        'description' => 'Actions that can be performed on the notification, like disimissal or import.',
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+      'submitter_id' => [
+        'description' => 'A unique id that should be specific to the notification to ensure notifications are not duplicated.',
+        'type' => 'text',
+        'not null' => TRUE,
+      ],
+      'enabled' => [
+        'description' => 'Boolean indicating whether the notification is enabled or disabled (disabled will not be shown on the dashboard).',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ],
+      'type' => [
+        'description' => 'Type of the notification, relating to what tripal function the notification belongs to, IE Fields, Jobs, Vocabulary.',
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => [
+      0 => 'note_id',
+    ],
+  ];
+
+  return $schema;
+}
+
+function tripal_tripal_id_space_collection_schema() {
+  $schema = [
+    'fields' => [
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'plugin_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ]
+    ],
+    'primary key' => ['name'],
+  ];
+
+  return $schema;
+}
+
+function tripal_tripal_vocabulary_collection_schema() {
+  $schema = [
+    'fields' => [
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'plugin_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ]
+    ],
+    'primary key' => ['name'],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Fixes spelling of table tripal_admin_notfications and its associated indexes
+ * and sequences.
+ */
+function tripal_update_8401() {
+  $db = \Drupal::database();
+  $messenger = \Drupal::messenger();
+  $count = $db->select('information_schema.tables', 't')
+    ->fields('t')
+    ->condition('table_name', 'tripal_admin_notfications')
+    ->countQuery()
+    ->execute()->fetchField();
+
+  if ($count) {
+    $db->query('ALTER TABLE tripal_admin_notfications RENAME TO tripal_admin_notifications;');
+    $messenger->addMessage('Renamed table tripal_admin_notfications to tripal_admin_notifications.');
+  }
+
+  $count = $db->select('information_schema.sequences', 's')
+    ->fields('s')
+    ->condition('sequence_name', 'tripal_admin_notfications_note_id_seq')
+    ->countQuery()
+    ->execute()->fetchField();
+
+  if ($count) {
+    $db->query('ALTER SEQUENCE tripal_admin_notfications_note_id_seq RENAME TO tripal_admin_notifications_note_id_seq;');
+    $messenger->addMessage('Renamed sequence tripal_admin_notfications_note_id_seq to tripal_admin_notifications_note_id_seq.');
+  }
+
+  $count = $db->select('pg_indexes', 'i')
+    ->fields('i')
+    ->condition('indexname', 'tripal_admin_notfications____pkey')
+    ->countQuery()
+    ->execute()->fetchField();
+
+  if ($count) {
+    $db->query('ALTER INDEX tripal_admin_notfications____pkey RENAME TO tripal_admin_notifications____pkey;');
+    $messenger->addMessage('Renamed index tripal_admin_notfications____pkey to tripal_admin_notifications____pkey.');
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Removes PostgreSQL schema cloning functions.
+ */
+function tripal_update_8402() {
+  // Remove the Tripal DBX Cloner functions from the Drupal schema.
+  tripal_uninstall_cloner();
+  $messenger = \Drupal::messenger();
+  $messenger->addMessage('Removed PostgreSQL schema cloning functions');
+}
+
+/**
+ * Remove schema cloning functionality.
+ */
+function tripal_uninstall_cloner() {
+  $logger = \Drupal::service('tripal.logger');
+  $db = \Drupal::database();
+
+  $sql_uninstall_cloner_path =
+    \Drupal::service('extension.path.resolver')->getPath('module', 'tripal')
+    . '/src/TripalDBX/pg-clone-schema/clone_schema_uninstall.sql';
+
+  // Replaces "public." in SQL if it is not the default Drupal schema.
+  $tripaldbx = \Drupal::service('tripal.dbx');
+  $drupal_schema = $tripaldbx->getDrupalSchemaName();
+  if (empty($drupal_schema) || ('public' == $drupal_schema)) {
+    $replacements = [];
+  }
+  else {
+    $replacements = [
+      'search' => [
+        '/public\\.tripal_get_table_ddl/',
+        '/public\\.tripal_clone_schema/',
+      ],
+      'replace' => [
+        $drupal_schema . '.tripal_get_table_ddl',
+        $drupal_schema . '.tripal_clone_schema',
+      ],
+    ];
+  }
+
+  $tripaldbx->runSqlFile($sql_uninstall_cloner_path, $replacements, $db);
+
+  // Check functions were uninstalled.
+  $function_names = ['tripal_get_table_ddl', 'tripal_clone_schema', ];
+  $sql_query = "
+    SELECT COUNT(1) AS \"funcs\"
+    FROM
+      pg_proc p
+      JOIN pg_namespace n ON (
+        n.oid = p.pronamespace
+        AND n.nspname = :schema
+      )
+    WHERE
+      p.proname IN (:function_names[])
+  ";
+  $args = [
+    ':function_names[]' => $function_names,
+    ':schema' => $drupal_schema,
+  ];
+  $result = $db->query($sql_query, $args)->fetch();
+
+  if (!$result || ($result->funcs > 0)) {
+    $message =
+      "Failed to uninstall Tripal SQL cloner functions. You may have to remove them manually using '$sql_uninstall_cloner_path'.";
+    $logger->warning($message);
+  }
+}

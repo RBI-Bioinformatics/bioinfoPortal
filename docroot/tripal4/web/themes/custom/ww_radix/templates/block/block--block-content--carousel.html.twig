@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Template for a block.
+ */
+#}
+{% embed '@ww_radix/block/block.twig' with {
+  html_tag: 'div',
+} %}
+
+{% block content %}
+  {% include '@ww_radix/carousel/carousel.twig' with {
+    content: content,
+  } %}
+{% endblock %}
+
+{% endembed %}
