@@ -1,0 +1,23 @@
+uuid: b06febc8-2e02-4f17-89c7-4ef98f1a899c
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+  theme:
+    - ww_radix
+_core:
+  default_config_hash: 0gq3VPg-_UM69FCCWurLFIrrnIjC2HLKhwo9iQNtcUo
+id: ww_radix_syndicate
+theme: ww_radix
+region: footer
+weight: -7
+provider: null
+plugin: node_syndicate_block
+settings:
+  id: node_syndicate_block
+  label: 'RSS feed'
+  label_display: '0'
+  provider: node
+  block_count: 10
+visibility: {  }

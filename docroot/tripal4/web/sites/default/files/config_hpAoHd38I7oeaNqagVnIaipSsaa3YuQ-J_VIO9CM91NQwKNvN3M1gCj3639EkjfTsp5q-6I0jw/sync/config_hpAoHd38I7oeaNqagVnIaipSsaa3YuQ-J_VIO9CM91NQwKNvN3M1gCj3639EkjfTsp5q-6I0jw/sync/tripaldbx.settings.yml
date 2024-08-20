@@ -1,0 +1,12 @@
+_core:
+  default_config_hash: vvlhhhsmXnxKVzNSg7hSgXoOhVjgCH1DmCtdcU2D4Dk
+reserved_schema_patterns:
+  '_test*': 'testing purposes'
+  public: 'Drupal installation'
+  frange: 'feature range (chado)'
+  genetic_code: 'genetic code (chado)'
+  so: 'sequence ontology (chado)'
+  _chado_13_template: 'upgrade template (chado)'
+test_schema_base_names:
+  default: _test_biodb
+  chado: _test_chado

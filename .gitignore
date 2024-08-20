@@ -1,30 +1,43 @@
-/vendor/
-/web/core/
-/web/modules/contrib/
-/web/themes/contrib/
-/web/profiles/contrib/
-/web/sites/*/settings.php
-/web/sites/*/services.yml
-/web/sites/*/development.services.yml
-/web/sites/simpletest/
-/web/sites/default/files/
-/web/sites/default/private/
-/web/sites/default/files-private/
-/node_modules/
-/.drush/
-/.drupalci.yml
-phpunit.xml
-phpunit.xml.dist
-/.editorconfig
-/.eslintignore
-/.eslintrc.json
-/.gitattributes
-/.gitignore
-/.ht.router.php
-/.lando.yml
-/.stylelintrc
-/.vscode/
-.sass-cache/
+# Ignore Drupal core files (managed by Composer)
+docroot/tripal4/web/core/
+
+# Ignore vendor directory (contains large files, managed by Composer)
+docroot/tripal4/vendor/
+
+# Ignore node_modules directories (in case you're using npm or yarn)
+**/node_modules/
+
+# Ignore build files and logs
+**/build/
+**/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore Composer's files
+composer.lock
+composer.phar
+
+# Ignore environment files
+.env
+
+# Ignore Docker-related files that should not be pushed
+.dockerignore
+docker-compose.override.yml
+
+# Ignore IDE/editor settings
+.vscode/
+.idea/
+*.swp
+*~
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+
+# Ignore any temporary files or backups
+*.bak
+*.tmp
 *.log
 *.sql
 *.sqlite

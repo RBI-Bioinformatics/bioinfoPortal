@@ -1,0 +1,19 @@
+uuid: 79eb1e5c-c9d9-42f8-a1e2-b76bd72761b6
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_title
+    - paragraphs.paragraphs_type.carousel_item
+id: paragraph.carousel_item.field_title
+field_name: field_title
+entity_type: paragraph
+bundle: carousel_item
+label: Title
+description: ''
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string
