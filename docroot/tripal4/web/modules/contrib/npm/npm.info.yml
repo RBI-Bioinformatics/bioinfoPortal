@@ -1,0 +1,10 @@
+name: Node Package Manager
+type: module
+description: Provides npm actions, e.g. require a package, run script, etc.
+package: Javascript
+core_version_requirement: ^9 || ^10
+
+# Information added by Drupal.org packaging script on 2024-01-22
+version: '3.0.0'
+project: 'npm'
+datestamp: 1705937977
