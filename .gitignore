@@ -4,6 +4,10 @@ docroot/tripal4/web/core/
 # Ignore vendor directory (contains large files, managed by Composer)
 docroot/tripal4/vendor/
 
+Gene sequences/
+
+mapman/usadellab.github.io/MapManJS/Experiments
+
 # Ignore node_modules directories (in case you're using npm or yarn)
 **/node_modules/
 

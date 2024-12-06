@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>	
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap-theme.min.css" integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ" crossorigin="anonymous">
+
+<!-- Latest compiled and minified JavaScript -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+</head>
+<body>
+<!-- <h2>
+Transcript and proteome expression on biological pathways using MapManJS <br/>	
+</h2>
+
+Assembled transcipts or protein sequences were aligned by Reciprocal Best Hit against cs10 mRNA or protein respectively.
+cs10 mRNA or protein are then aligned by Reciprocal Best Hit with A. Thaliana  mRNA or protein. 
+The pathways for A. Thaliana are then used after mapping from the query transcript/protein -> cs10 gene -> TAIR gene<br/>
+The expression data are queried from the ICGRC Tripal Transcriptome/Expression Analysis page.<br/><br/>
+Select the experiment and values to display. Expression values can be absolute or log2 ratio between two selected measurements. -->
+<!-- <br/>
+<br/> -->
+<br/>
+
+	
+<script src="https://d3js.org/d3.v4.js"></script>
+<script src="https://usadellab.github.io/MapManJS/scripts/FixedColoredModel.js"> </script>
+<script>
+
+/** TODO better bin interpretation CAM omits some genes only uses 14.1. not 1.4.2 **/
+
+/**seems to have been a multi bin issue but should be checked **/
+
+
+var input="at1g53500.1\t2.3\nat3g23820.1\t-1.3";
+var data={};
+var hash={};
+var mappingfile={};
+var array=[];
+var SIZE=5;
+fieldpointer=4;
+
+var pathways={};
+var firstload=true;
+
+// Pathways options
+pathways['Metabolism_overview'] = 'Metabolism_overview.svg';
+pathways['Amino_acid_metabolism'] = 'X4.2_Amino_acid_metabolism.svg';
+pathways['Carbohydrate_metabolism'] = 'X4.2_Carbohydrate_metabolism.svg';
+pathways['Cellular_respiration'] = 'X4.2_Cellular_respiration.svg';
+pathways['Coenzyme_metabolism'] = 'X4.2_Coenzyme_metabolism.svg';
+pathways['GA_synthesis_R2.0'] = 'X4.2_GA_synthesis_R2.0.svg';
+pathways['JA_synthesis_R2.0'] = 'X4.2_JA_synthesis_R2.0.svg';
+pathways['Lignin_R2.0'] = 'X4.2_Lignin_R2.0.svg';
+pathways['Lipid_metabolism'] = 'X4.2_Lipid_metabolism.svg';
+pathways['Nucleotide_metabolism'] = 'X4.2_Nucleotide_metabolism.svg';
+pathways['Polyamine_metabolism'] = 'X4.2_Polyamine_metabolism.svg';
+pathways['Secondary_metabolism'] = 'X4.2_Secondary_metabolism.svg';
+pathways['Photosynthesis'] = 'X4.2_Photosynthesis.svg';
+pathways['Tetrapyrrole_R2.0'] = 'X4.2_Tetrapyrrole_R2.0.svg';
+pathways['Tocopherol_biosynthesis_R2.0'] = 'X4.2_Tocopherol_biosynthesis_R2.0.svg';
+pathways['GA_synthesis'] = 'X4_GA_synthesis.svg';
+pathways['JA_synthesis'] = 'X4_JA_synthesis.svg';
+pathways['KinaseFamilies2v2'] = 'X4_KinaseFamilies2v2.svg';
+pathways['LigninX4_4'] = 'X4_LigninX4_4.svg';
+pathways['Metabolism_overviewX4_V41'] = 'X4_Metabolism_overviewX4_V41.svg';
+pathways['N-uptake'] = 'X4_N-uptake.svg';
+pathways['tetrapyrrole'] = 'X4_tetrapyrrole.svg';
+pathways['Tocopherol Biosynthesis'] = 'X4_Tocopherol Biosynthesis.svg';
+//pathways['GA_synthesis_later_stages'] = 'GA_synthesis_later_stages.svg';
+
+
+var pathwaykeys=Object.keys(pathways);
+var analysis={};
+var mappings={};
+
+
+// Fill experiment options
+analysis['Cannabis glandular trichomes alter morphology and metabolite content during flower maturation (Livingston 2020)']=15; 
+analysis['Characterization of the Cannabis sativa glandular trichome proteome (Conneely 2021)']=53;
+analysis['Genome-Wide Expression Profiles of Hemp Cannabis sativa L. in Response to Drought Stress (Gao 2018)']=16;
+analysis['In silico gene expression profiling in Cannabis sativa (Massimino 2017)']=13;
+analysis['Transcriptomic profiling of hemp bast fibres at different developmental stages (Guerriero 2017)']=54;
+
+
+var optionstextAnalysis=Object.keys(analysis);
+
+
+// Fill mapping options
+mappings['cs10-A.thaliana_RBH']= "./MappingFiles/X4_ENSEMBL39_ISOFORM_ArabidopsisThaliana.results.txt-cs10pep.out-cs10cds.out";
+mappings['cs10-E.grandis_RBH']="./MappingFiles/Egrandis_201.txt-cs10pep.out-cs10cds.out";
+mappings['cs10-S.lycopersicum_RBH']="./MappingFiles/X4_ENSEMBL39_ISOFORM_SolanumLyc.results.txt-cs10pep.out-cs10cds.out";
+
+
+// Initialize/Default selections
+var Imagepath =   "./Pathways/Metabolism_overview.svg";
+var XMLpath  =  "./Pathways/Metabolism_overview.xml";
+var MFpath = "./MappingFiles/X4_ENSEMBL39_ISOFORM_ArabidopsisThaliana.results.txt-cs10pep.out-cs10cds.out";
+// var MFpath = "./MappingFiles/X4_ENSEMBL39_ISOFORM_ArabidopsisThaliana.results.txt";
+
+var svgnode = null;
+
+var Experimentpath = './Experiments/JJtest.txt';
+const urlParams = new URLSearchParams(window.location.search);
+console.log(urlParams);
+if (urlParams.has('analysis_id')) {
+	Experimentpath = './Experiments/expression_data_'.concat( urlParams.get('analysis_id'), '.csv'); 
+}
+if (urlParams.has('pathway')) {
+	var pathname =  urlParams.get('pathway');
+	Imagepath =   "./Pathways/" + pathways[pathname];
+	XMLpath  =  "./Pathways/" + pathways[pathname].replace(".svg",".xml");
+}
+if (urlParams.has('mapping')) {
+	var mapping =  urlParams.get('mapping');
+	MFpath = mappings[mapping];
+}
+
+// console.log(Experimentpath);
+console.log(color(3));
+console.log(calcColor(1));
+console.log(calcColor(0.4));
+console.log(calcColor(0.1));
+console.log(calcColor(-0.9));
+console.log(calcColor(-0.8));
+
+
+var q = d3.queue();
+q.defer(load_svg);
+q.defer(load_xml);
+q.defer(load_mf);
+q.defer(load_data);
+q.await(function(error) {
+  if (error) throw error;
+  render();
+});
+
+function load_svg(callback){
+	d3.xml(Imagepath).mimeType("image/svg+xml").get(function(error, xml) {
+	  if (error) throw error;
+	  var select = d3.select('body')
+		  .append('div').attr('id','firstchild');
+
+	  if (svgnode==null) {
+		  document.body.appendChild(xml.documentElement);
+		  svgnode=document.body.lastChild;
+		  console.log("new svgnode=" + svgnode);
+	  } else {
+	  	//document.body.replaceChild(xml.documentElement,svgnode);
+	  	  document.body.removeChild(svgnode);
+		  document.body.appendChild(xml.documentElement);
+		  svgnode=document.body.lastChild;
+		  console.log("new svgnode=" + svgnode);
+	  }
+ 	  //d3.select('#firstchild').append(xml.documentElement);
+	  //xml.documentElement
+	  //needs to go here otherwise we are not sure if loaded ASYNCHRONOUS
+		/**TODO add all loaders to a pipe from D3 **/
+		console.log("svg finished");
+	  callback(null);
+	});
+}
+
+// this function loads the instructions for the a pathway image
+// this is the XML file 
+function load_xml(callback){
+	d3.text(XMLpath, function(text) {
+		//console.log(text);
+		var lines = text.split("\n");
+		var xcache;
+		var ycache;
+		var bformat;
+		var fnumber;
+		for(var i = 0;i < lines.length;i++){
+			console.log(lines[i]);
+			//console.log(lines[i]);
+			var match= lines[i].match(/<dataarea\s+x=\D+(\d+).+y=\D+(\d+)/i);
+			if (match!=null){
+				//console.log(lines[i]);
+				//console.log(match);
+				xcache = parseInt(match[1]);
+				ycache = parseInt(match[2]);
+				//rematch
+				var match2 = lines[i].match (/blockformat.*?=.+?([xy])(\d+)/i);
+				if ((match2!=null) && (match2[1])) {
+					bformat=match2[1]; 
+					fnumber=match2[2];
+				} 
+				else {bformat="x"; fnumber=5;}
+				//console.log("X:"+xcache+"Y:"+ycache+"B:"+bformat);
+			}
+			
+			match= lines[i].match(/<identifier\s+id=\D+([0-9.]+)/i);
+			if (match!=null){
+		//		console.log(lines[i]);
+				var datapoint ={
+					x:xcache,
+					y:ycache,
+					offset:0,
+					format:bformat,
+					formatnumber:fnumber
+				};
+				hash[match[1]] = datapoint;
+		//		console.log(datapoint);
+			}
+		}
+	console.log("done xml");
+	callback(null);
+
+	});
+}
+
+// this function loads the mapping file generated eg. by Mercator4
+// this is the Mapping file loader
+function load_mf(callback){
+/** TODO add multibins **/
+	d3.text(MFpath, function(text) {
+		//console.log(text);
+		text=text.toLowerCase();
+		text=text.replace(/\r/g,""); //remove windows pony 
+		text=text.replace(/'/g,""); //remove quotes
+		var lines = text.split("\n"); //make linewise array
+		for(var i = 0;i < lines.length;i++){
+			var vals=lines[i].split("\t");
+			if ((vals[2]!=="") ) {
+			if (mappingfile[vals[2]] !=null){
+				mappingfile[vals[2]].push(vals[0]);
+			}
+			else {mappingfile[vals[2]]= [vals[0]];}
+				//console.log(vals[2]+" dd"+vals[0]+"MM");
+				//console.log("KKRI"+mappingfile["at3g23820.1"]);
+			}
+		}
+		console.log("done mf");
+		callback(null);
+	});
+}
+
+
+// this function loads the experimantal file
+// this is the Experiment File
+// each column is one Log2 Fold change
+// p-values etc are not yet supported
+function load_data(callback){
+	d3.text(Experimentpath, function(text) {
+		//console.log(text);
+		text=text.toLowerCase();
+		text=text.replace(/\r/g,""); //remove windows pony
+		text=text.replace(/'/g,""); //remove quotes
+		var lines = text.split("\n"); //make linewise array
+		//get header;
+		var heads=vals=lines[0].split("\t");
+		var datacolumns=heads.length;
+		var genecount=0;
+		for(var i = 1;i < lines.length;i++){
+			var vals=lines[i].split("\t");
+			let temp=[]
+			for (var j= 1; j< vals.length;j++){
+				temp.push(parseFloat(vals[j]));
+			}
+			data[vals[0]]=temp;
+			genecount=genecount+1;
+		}	
+		heads.shift(); //remove gene
+
+		console.log("".concat(genecount,  " genes read"));
+		
+		var optionstext = heads;
+		var optionstextDen = ['1'].concat(optionstext);
+
+
+		var selectDen = null;
+		var select = null;
+
+		if (firstload) {		
+
+			d3.select('body')
+			  .insert('div', '#firstchild' )
+				.attr('id','divPathways');
+
+			d3.select('#divPathways')
+			  .append('span')
+				.html("Pathways:  ");
+
+			var selectPathways = d3.select('#divPathways')
+			  .append('select')
+				.attr('class','select')
+				.attr('id','selectPathways')
+				.on('change',onchangePathways);
+
+			d3.select('#divPathways')
+			  .append('span')
+				.html("         Mapping:  ");
+
+			var selectMapping = d3.select('#divPathways')
+			  .append('select')
+				.attr('class','select')
+				.attr('id','selectMapping')
+				.on('change',onchangeMapping);
+
+			d3.select('body')
+			  .insert('div', '#firstchild' )
+				.attr('id','divAnalysis');
+
+			d3.select('#divAnalysis')
+			  .append('span')
+				.html("Expression experiment:  ");
+
+			var selectAnalysis = d3.select('#divAnalysis')
+			  .append('select')
+				.attr('class','select')
+				.attr('id','selectAnalysis')
+				.on('change',onchangeAnalysis);
+
+			d3.select('body')
+			  .insert('span', '#firstchild' )
+				.html("Display value:  ");
+
+			var label_log2 = d3.select('body')
+			  .insert('span', '#firstchild' )
+				.attr('id','label_log2')
+				.html("");
+
+			select = d3.select('body')
+			  .insert('select', '#firstchild' )
+				.attr('class','select')
+				.attr('id','selectNum')
+				.on('change',onchange);
+
+			var label_slash = d3.select('body')
+			  .insert('span', '#firstchild' )
+				.attr('id','label_slash')
+				.html("<bold> / </bold>");
+
+			selectDen = d3.select('body')
+	//		  .append('select')
+			  .insert('select', '#firstchild' )
+				.attr('class','select')
+				.attr('id','selectDen')
+				.on('change',onchangeDen);
+
+
+					var optionsAnalysis = selectAnalysis
+					  .selectAll('option')
+						.data(optionstextAnalysis).enter()
+						.append('option')
+							.text(function (d) { return d; })
+							.property("value",function(d,i) {return i;});
+
+					var optionsPathways = selectPathways
+					  .selectAll('option')
+						.data(pathwaykeys).enter()
+						.append('option')
+							.text(function (d) { return d; })
+							.property("value",function(d,i) {return i;});
+
+					var optionsMapping = selectMapping
+					  .selectAll('option')
+						.data(Object.keys(mappings)).enter()
+						.append('option')
+							.text(function (d) { return d; })
+							.property("value",function(d,i) {return i;});
+
+
+					function onchangeSettings() {
+						var selectValueAnalysis = d3.select('#selectAnalysis').property('value');
+						var selectValuePathway = d3.select('#selectPathways').property('value');
+						var selectValueMapping = d3.select('#selectMapping').property('value');
+
+
+						var analysisid=analysis[optionstextAnalysis[parseInt(selectValueAnalysis)]];
+						window.location.href = '/ultramicro.html?analysis_id=' + analysisid + "&pathway=" + pathwaykeys[parseInt(selectValuePathway)] + "&mapping=" + Object.keys(mappings)[parseInt(selectValueMapping)] ;
+
+					}
+
+					function onchangeMapping() {
+						onchangeSettings();
+					}
+					function onchangePathways() {
+						onchangeSettings();
+
+					};
+
+					function onchangeAnalysis() {
+						onchangeSettings();
+
+					};
+					
+					if (urlParams.has('analysis_id')) {
+							var selectValue=-1;
+							var analysisid=parseInt(urlParams.get('analysis_id'));
+							d3.select('#selectAnalysis').property('value', Object.values(analysis).indexOf(analysisid));
+					} else {
+							d3.select('#selectAnalysis').property('value', 0);
+					}
+					if (urlParams.has('pathway')) {
+							var pathname=urlParams.get('pathway');
+							d3.select('#selectPathways').property('value', pathwaykeys.indexOf(pathname));
+					} else {
+							d3.select('#selectPathways').property('value', 0);
+					}
+					if (urlParams.has('mapping')) {
+							var mapping=urlParams.get('mapping');
+							d3.select('#selectMapping').property('value', Object.keys(mappings).indexOf(mapping));
+					} else {
+							d3.select('#selectMapping').property('value', 0);
+					}
+
+
+			firstload=false;
+		} else {
+
+			select = d3.select('#selectNum');
+			selectDen = d3.select('#selectDen');
+		}
+
+		var options = select
+		  .selectAll('option')
+			.data(optionstext).enter()
+			.append('option')
+				.text(function (d) { return d; })
+				.property("value",function(d,i) {return i;});
+		var optionsDen = selectDen
+		  .selectAll('option')
+			.data(optionstextDen).enter()
+			.append('option')
+				.text(function (d) { return d; })
+				.property("value",function(d,i) {return i;});
+
+
+		function onchange() {
+			selectValue = d3.select('#selectNum').property('value');
+			renderD3(parseInt(selectValue));
+		};
+
+		function onchangeDen() {
+			selectValue = d3.select('#selectNum').property('value');
+			selectValueDen = d3.select('#selectDen').property('value');
+				if (selectValueDen==0) {
+					d3.select('#label_log2').html("");
+					renderD3(parseInt(selectValue));
+				} else {
+					d3.select('#label_log2').html("log2");
+					renderD3log2ratio(parseInt(selectValue),parseInt(selectValueDen)-1);
+				}
+		};
+
+
+		console.log("done data");
+		callback(null);
+	});
+}
+
+
+function render(){
+	console.log("do render");
+	var genecount=0;
+	for (var gene in data){
+
+		// Check if the property really exists
+		if (data.hasOwnProperty(gene) && (gene!="")){
+			//console.log("G:"+gene);
+			if (gene in mappingfile){
+				for (var k=0; k< mappingfile [gene].length; k++ ){
+					let bincode = mappingfile [gene][k];
+				
+					//console.log(bincode, data[gene],gene);
+					let temp= bincode;
+					while(temp!=null) {
+						dataline=putzD3(temp,gene);
+						//console.log(dataline);
+						if (dataline!=null) {
+							dataline.push(...data[gene]);
+							array.push(dataline);
+							//console.log(array);
+							
+						}
+						temp=getParent(temp);
+					} 
+				}
+				genecount=genecount+1;
+			}
+		}
+	}
+	console.log("".concat(genecount,  " genes rendered"));
+	console.log(array);
+	renderD3(0);
+}
+
+
+function renderD3(fieldpointer){
+	//if (machen)
+	var svgmaster=d3.select("svg");
+	var svg = svgmaster.append("svg:g").attr("id","Viz layer");
+	
+	//zupdae
+	var rects=svg.selectAll("rect")
+	.data(array);
+	//enter+ update
+	rects.enter().append("rect")
+    .attr("x", function(d) { return d[2];  })
+    .attr("y", function(d) { return d[3]; })
+    .style("fill", function(d) {console.log("D"); return color(d[fieldpointer+4]);})
+	.attr("height",SIZE)
+	.attr("width",SIZE)
+	.style("stroke","lightgray")
+	.append("title").text(function(d) {return d[0]+" "+d[fieldpointer+4]+ "M:"+fieldpointer})
+	.merge(rects) //update follows
+	.attr("height",SIZE-1)
+	.attr("width",SIZE-1)
+	.style("fill", function(d) {console.log("D"); return color(d[fieldpointer+4]);})
+	.select("title").text(function(d) {return d[0]+" "+d[fieldpointer+4]+ "M:"+fieldpointer});
+	//enter
+	rects.exit().remove(); //should not be needed;
+	//update
+	console.log("done render");
+}
+
+function renderD3log2ratio(fieldpointer,fieldpointerDen){
+	//if (machen)
+	console.log("renderLog2ratio ".concat(fieldpointer,"/",fieldpointerDen));
+
+	var svgmaster=d3.select("svg");
+	var svg = svgmaster.append("svg:g").attr("id","Viz layer");
+	
+	//zupdae
+
+	var rects=svg.selectAll("rect")
+	.data(array);
+	//enter+ update
+	rects.enter().append("rect")
+    .attr("x", function(d) { return d[2];  })
+    .attr("y", function(d) { return d[3]; })
+    .style("fill", function(d) {console.log("D"); 
+		var rectcolornum=d[fieldpointer+4];
+		var rectcolorden=d[fieldpointerDen+4];
+		var log2ratio=0;
+		if (rectcolorden!=0) {
+			log2ratio=Math.log2(rectcolornum*1.0/rectcolorden);
+		}
+    	return color(log2ratio);})
+	.attr("height",SIZE)
+	.attr("width",SIZE)
+	.style("stroke","lightgray")
+	.append("title").text(function(d) {
+		var rectcolornum=d[fieldpointer+4];
+		var rectcolorden=d[fieldpointerDen+4];
+		var log2ratio=0;
+		if (rectcolorden!=0) {
+			log2ratio=Math.log2(rectcolornum*1.0/rectcolorden);
+		}
+		return d[0]+" "+log2ratio+ "M:"+fieldpointer})
+	.merge(rects) //update follows
+	.attr("height",SIZE-1)
+	.attr("width",SIZE-1)
+	.style("fill", function(d) {console.log("D"); 
+		var rectcolornum=d[fieldpointer+4];
+		var rectcolorden=d[fieldpointerDen+4];
+		var log2ratio=0;
+		if (rectcolorden!=0) {
+			log2ratio=Math.log2(rectcolornum*1.0/rectcolorden);
+		}
+		return color(log2ratio);})
+	.select("title").text(function(d) {
+		var rectcolornum=d[fieldpointer+4];
+		var rectcolorden=d[fieldpointerDen+4];
+		var log2ratio=0;
+		if (rectcolorden!=0) {
+			log2ratio=Math.log2(rectcolornum*1.0/rectcolorden);
+		}
+		return d[0]+" "+log2ratio+ "M:"+fieldpointer});
+	//enter
+	rects.exit().remove(); //should not be needed;
+	//update
+	console.log("done render");
+}
+
+
+//gets the parent of a BIN, if the bin is root it returns null
+function getParent(element){
+	//console.log(element);
+	var pos=element.lastIndexOf(".");
+	//console.log("parent:"+element.substring(0,pos));
+	if (pos === -1) return null;
+	return element.substring(0,pos);
+}
+
+function putzD3 (bincode,gene){
+	//console.log("PUTZ"+bincode+value+gene+hash[bincode]);
+	if (bincode==null) return null;  //do nothing
+	if (hash[bincode]!=null) { // do we have a position
+		dp=hash[bincode];
+		var xpos=calcx(dp.x,dp.offset,dp.format,dp.formatnumber);
+		var ypos=calcy(dp.y,dp.offset,dp.format,dp.formatnumber);
+		hash[bincode].offset++;
+		
+	}
+	else return null;
+	/*if (getParent(bincode)!=null) {
+		putzD3(getParent(bincode),value,gene);
+	}*/
+	return [gene,bincode,xpos,ypos];
+}
+
+function putz (bincode,value,gene){
+	//console.log("PUTZ"+bincode+value+gene+hash[bincode]);
+	if (bincode==null) return; //do nothing
+	if (hash[bincode]!=null) { // do we have a position
+		dp=hash[bincode];
+		var xpos=calcx(dp.x,dp.offset,dp.format,dp.formatnumber);
+		var ypos=calcy(dp.y,dp.offset,dp.format,dp.formatnumber);
+		d3.select("svg").append("rect")
+			.attr("x",xpos)
+			.attr("y",ypos)
+			.attr("width",SIZE-1)
+			.attr("height",SIZE-1)
+			.style("fill", color(value))
+			.append("title").text(gene+" "+value);
+				
+		d3.select("svg").append("circle").attr("cx", 25).attr("cy", 25).attr("r", 25).style("fill", "purple");
+
+		hash[bincode].offset++;
+		
+	}
+	if (getParent(bincode)!=null) {
+		putz(getParent(bincode),value,gene);
+	}
+}
+
+
+function calcx(x,offset,formm,formnumber) {
+	//console.log("XXXX"+x);
+	if (formm=== "x") { //x selected
+		return x+ (offset % formnumber)*SIZE;
+	}
+	//y type form
+	return x+Math.floor( offset / formnumber)*SIZE; 
+}
+
+function calcy(y,offset,form,formnumber){
+	//console.log("YYYYS"+y);
+	if (form=== "y") { //x selected
+		return y+ (offset % formnumber)*SIZE;
+	}
+	//y type form
+	return y+Math.floor( offset / formnumber)*SIZE; 
+}
+
+
+function color(val){
+//console.log(calcColor(val));
+v=calcColor(val);
+return d3.rgb(v[0],v[1],v[2]);
+}
+
+  
+</script>

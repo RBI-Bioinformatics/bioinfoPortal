@@ -1,0 +1,1 @@
+tripaldocker/Dockerfile-php8.2

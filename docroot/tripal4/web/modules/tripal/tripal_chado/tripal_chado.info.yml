@@ -1,0 +1,10 @@
+name: 'Tripal Chado'
+type: module
+description: 'Chado integration for Tripal.'
+core_version_requirement: ^10.2
+php: 8.1
+package: 'Tripal'
+version: 4.0.alpha3
+dependencies:
+  - tripal:tripal
+  - tripal:tripal_biodb
