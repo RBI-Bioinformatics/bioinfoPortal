@@ -23,7 +23,7 @@
 {% set color = color ?? 'light' %}
 {% set navbar_expand = navbar_expand ?? 'lg' %}
 
-<nav class="navbar navbar-expand-{{ navbar_expand }} justify-content-between navbar-{{ color }} {{ placement }} {{ utility_classes|join(' ') }}" data-bs-theme="{{ color }}">
+<nav class="navbar navbar-expand-{{ navbar_expand }} justify-content-between navbar-{{ color }} {{ placement }} {{ utility_classes|join(' ') }} mb-1" data-bs-theme="{{ color }}">
   {% if container %}
     <div class="{{ container }}">
   {% endif %}

@@ -11,6 +11,9 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - ${PROJECT_ROOT}/docroot/tripal4:/var/www/bioinformatics/docroot/tripal4
     container_name: php
@@ -31,7 +34,8 @@ services:
     volumes:
       - ${PROJECT_ROOT}/docroot/tripal4:/var/www/bioinformatics/docroot/tripal4
       - ${PROJECT_ROOT}/apache:/var/www/bioinformatics/apache
-      - ./apache/local.apache.conf:/usr/local/apache2/conf/local.apache.conf
+      - ${PROJECT_ROOT}/apache/local.apache.conf:/usr/local/apache2/conf/local.apache.conf
+      - ${PROJECT_ROOT}/mapman/usadellab.github.io/MapManJS:/var/www/bioinformatics/mapman
     container_name: apache
 
   postgres:
@@ -56,6 +60,7 @@ services:
       - "3000:80"
     networks:
       - frontend
+      - backend
     volumes:
       - ${PROJECT_ROOT}/mapman/usadellab.github.io/MapManJS:/usr/local/apache2/htdocs/
 

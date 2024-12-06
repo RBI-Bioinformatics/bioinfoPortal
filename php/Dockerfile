@@ -19,7 +19,7 @@ RUN apk add --no-cache \
     openssh-client \
     rsync \
     git \
-    curl \
+    jq curl \
     wget \
     gzip \
     tar \
@@ -61,19 +61,20 @@ RUN echo "opcache.enable=1" > /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.interned_strings_buffer=8" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.max_accelerated_files=4000" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.revalidate_freq=2" >> /usr/local/etc/php/conf.d/opcache.ini && \
-    echo "opcache.save_comments=1" >> /usr/local/etc/php/conf.d/opcache.ini
+    echo "opcache.save_comments=1" >> /usr/local/etc/php/conf.d/opcache.ini 
 
-# Install and configure Xdebug (optional)
-# RUN pecl install xdebug-3.1.2 && \
-#     docker-php-ext-enable xdebug && \
-#     echo "zend_extension=xdebug.so" > /usr/local/etc/php/conf.d/xdebug.ini && \
-#     echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/xdebug.ini && \
-#     echo "xdebug.start_with_request=yes" >> /usr/local/etc/php/conf.d/xdebug.ini
+# Install blast+ for syntenic viewer. Example URL, replace with the actual latest version
+# RUN wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz && \
+#     tar -xzf ncbi-blast-2.16.0+-x64-linux.tar.gz && \
+#     mv ncbi-blast-2.16.0+/bin/* /usr/local/bin/ && \
+#     rm -rf ncbi-blast-2.16.0+-x64-linux.tar.gz ncbi-blast-2.16.0+
 
-# Xdebug configuration (optional)
-# RUN echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/xdebug.ini && \
-#     echo "xdebug.client_port=9003" >> /usr/local/etc/php/conf.d/xdebug.ini && \
-#     echo "xdebug.log=/tmp/xdebug.log" >> /usr/local/etc/php/conf.d/xdebug.ini
+# Increase PHP memory limit and upload settings
+RUN echo "memory_limit=2G" > /usr/local/etc/php/conf.d/memory-limit.ini && \
+    echo "upload_max_filesize=2G" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "max_input_time=300" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "post_max_size=2G" >> /usr/local/etc/php/conf.d/uploads.ini
 
 # Clean up
 RUN apk del --purge \

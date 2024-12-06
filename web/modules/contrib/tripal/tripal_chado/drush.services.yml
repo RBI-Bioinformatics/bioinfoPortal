@@ -1,5 +1,0 @@
-services:
-  tripal_chado.chadomanagecommands:
-    class: \Drupal\tripal_chado\Commands\ChadoManageCommands
-    tags:
-      - { name: drush.command }
