@@ -1,76 +1,39 @@
 version: "3.7"
+
 services:
-  php:
-    build: 
-      context: './php/'
-      args:
-       PHP_VERSION: ${PHP_VERSION}
-    networks:
-      - backend
-    environment:
-      - DB_NAME=${DB_NAME}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
+  php-apache:
+    build:
+      context: .
+      dockerfile: ./apache/Dockerfile
+    container_name: php-apache
     dns:
       - 8.8.8.8
       - 8.8.4.4
+    env_file: .env
     volumes:
-      - ${PROJECT_ROOT}/docroot/tripal4:/var/www/bioinformatics/docroot/tripal4
-    container_name: php
-
-  apache:
-    build:
-      context: './apache/'
-      args:
-       APACHE_VERSION: ${APACHE_VERSION}
-    depends_on:
-      - php
-      - postgres
-    networks:
-      - frontend
-      - backend
+      - ${PROJECT_ROOT}/docroot/tripal4:/var/www/docroot
     ports:
       - "8080:80"
-    volumes:
-      - ${PROJECT_ROOT}/docroot/tripal4:/var/www/bioinformatics/docroot/tripal4
-      - ${PROJECT_ROOT}/apache:/var/www/bioinformatics/apache
-      - ${PROJECT_ROOT}/apache/local.apache.conf:/usr/local/apache2/conf/local.apache.conf
-      - ${PROJECT_ROOT}/mapman/usadellab.github.io/MapManJS:/var/www/bioinformatics/mapman
-    container_name: apache
+    depends_on:
+      - postgres
 
   postgres:
     image: postgres:${POSTGRES_VERSION:-latest}
+    container_name: postgres
     restart: always
-    ports:
-      - "5432:5432"
+    env_file: .env
     volumes:
       - data:/var/lib/postgresql/data
-    networks:
-      - backend
-    environment:
-      POSTGRES_USER: "${DB_USERNAME}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD}"
-      POSTGRES_DB: "${DB_NAME}"
-    container_name: postgres
+    ports:
+      - "5432:5432"
 
   mapman:
     build: ./mapman
     container_name: mapman
-    ports:
-      - "3000:80"
-    networks:
-      - frontend
-      - backend
     volumes:
       - ${PROJECT_ROOT}/mapman/usadellab.github.io/MapManJS:/usr/local/apache2/htdocs/
-
-networks:
-  frontend:
-    driver: bridge
-    name: bioinformatics_frontend
-  backend:
-    driver: bridge
-    name: bioinformatics_backend
+    ports:
+      - "3000:80"
 
 volumes:
   data:

@@ -1,1 +1,0 @@
-tripaldocker/Dockerfile-php8.1-pgsql13

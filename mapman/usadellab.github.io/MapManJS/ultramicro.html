@@ -91,20 +91,20 @@ var optionstextAnalysis=Object.keys(analysis);
 
 
 // Fill mapping options
-mappings['cs10-A.thaliana_RBH']= "./MappingFiles/X4_ENSEMBL39_ISOFORM_ArabidopsisThaliana.results.txt-cs10pep.out-cs10cds.out";
-mappings['cs10-E.grandis_RBH']="./MappingFiles/Egrandis_201.txt-cs10pep.out-cs10cds.out";
-mappings['cs10-S.lycopersicum_RBH']="./MappingFiles/X4_ENSEMBL39_ISOFORM_SolanumLyc.results.txt-cs10pep.out-cs10cds.out";
+mappings['cs10-A.thaliana_RBH']= "./MappingFiles/X4_ENSEMBL39_ISOFORM_ArabidopsisThaliana-cs10pep.out";
+mappings['cs10-E.grandis_RBH']="./MappingFiles/Egrandis_201.txt-cs10pep.out";
+mappings['cs10-S.lycopersicum_RBH']="./MappingFiles/X4_ENSEMBL39_ISOFORM_SolanumLyc-cs10pep.out";
 
 
 // Initialize/Default selections
 var Imagepath =   "./Pathways/Metabolism_overview.svg";
 var XMLpath  =  "./Pathways/Metabolism_overview.xml";
-var MFpath = "./MappingFiles/X4_ENSEMBL39_ISOFORM_ArabidopsisThaliana.results.txt-cs10pep.out-cs10cds.out";
+var MFpath = "./MappingFiles/X4_ENSEMBL39_ISOFORM_ArabidopsisThaliana-cs10pep.out";
 // var MFpath = "./MappingFiles/X4_ENSEMBL39_ISOFORM_ArabidopsisThaliana.results.txt";
 
 var svgnode = null;
 
-var Experimentpath = './Experiments/JJtest.txt';
+var Experimentpath = './Experiments/expression_data_15.csv';
 const urlParams = new URLSearchParams(window.location.search);
 console.log(urlParams);
 if (urlParams.has('analysis_id')) {
