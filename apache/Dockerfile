@@ -78,6 +78,9 @@ WORKDIR /var/www/docroot
 # RUN mkdir -p /var/www/docroot/sites/default/files && \
 #     chmod -R 777 /var/www/docroot/sites/default/files
 
+# Add ServerName directive in the Apache configuration
+RUN echo "ServerName 13.250.212.83" >> /etc/apache2/apache2.conf
+
 # Expose port 80 for Apache
 EXPOSE 80
 
