@@ -33,7 +33,7 @@ services:
     volumes:
       - ${PROJECT_ROOT}/mapman/usadellab.github.io/MapManJS:/usr/local/apache2/htdocs/
     ports:
-      - "3000:80"
+      - "8081:80"
 
 volumes:
   data:
