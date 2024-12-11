@@ -13,7 +13,7 @@ services:
     volumes:
       - ${PROJECT_ROOT}/docroot/tripal4:/var/www/docroot
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - postgres
 
