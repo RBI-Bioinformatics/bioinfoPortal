@@ -75,7 +75,7 @@ RUN sed -i 's|/var/www/html|/var/www/docroot/web|g' /etc/apache2/sites-enabled/0
 WORKDIR /var/www/docroot
 
 # Add ServerName directive in the Apache configuration
-# RUN echo "ServerName 0.0.0.0" >> /etc/apache2/apache2.
+RUN echo "ServerName 13.250.212.83" >> /etc/apache2/apache2.
 
 # Update /etc/apache2/sites-enabled/000-default.conf
 # RUN sed -i 's|<VirtualHost 13.250.212.83:80>|<VirtualHost *:80>|g' /etc/apache2/sites-enabled/000-default.conf
