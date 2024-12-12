@@ -77,9 +77,6 @@ WORKDIR /var/www/docroot
 # Add ServerName directive in the Apache configuration
 RUN echo "ServerName 13.250.212.83" >> /etc/apache2/apache2.conf
 
-# Update /etc/apache2/sites-enabled/000-default.conf
-RUN sed -i 's|<VirtualHost 13.250.212.83:80>|<VirtualHost *:80>|g' /etc/apache2/sites-enabled/000-default.conf
-
 # Expose port 80 for Apache
 EXPOSE 80
 

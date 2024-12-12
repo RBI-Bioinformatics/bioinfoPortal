@@ -776,6 +776,7 @@ $settings['trusted_host_patterns'] = [
 #  '^.+\.yourdomain\.com$',
   '^localhost$',
   '^127\.0\.0\.1$',	
+  '^13\.250\.212\.83$',
 ];
 
 /**
