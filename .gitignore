@@ -13,6 +13,7 @@ mapman/usadellab.github.io/MapManJS/Experiments
 
 # Ignore build files and logs
 **/build/
+!docroot/tripal4/web/themes/custom/ww_radix/config/proxy.js
 **/logs/
 npm-debug.log*
 yarn-debug.log*
